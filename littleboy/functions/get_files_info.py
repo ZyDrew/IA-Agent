@@ -6,7 +6,7 @@ def get_files_info(working_directory, directory="."):
         full_path = os.path.join(working_directory, directory)
     
         if not os.path.abspath(full_path).startswith(os.path.abspath(working_directory)):
-            return f"Error : Cannot list {directory} as it is outside the permitted working directory"
+            return f"Error: Cannot list {directory} as it is outside the permitted working directory"
         
         if os.path.isfile(directory):
             return f"Error: {directory} is not a directory"
@@ -31,7 +31,7 @@ def get_file_content(working_directory, file_path):
         abs_full_path = os.path.abspath(os.path.join(working_directory, file_path))
 
         if not abs_full_path.startswith(os.path.abspath(working_directory)):
-            return f"Error : Cannot read {file_path} as it is outside the permitted working directory"
+            return f"Error: Cannot read {file_path} as it is outside the permitted working directory"
         
         if not os.path.isfile(abs_full_path):
             return f"Error: File not found or is not a regular file: {file_path}"
