@@ -14,7 +14,7 @@ def main():
     api_key = os.environ.get("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key)
 
-    #Bool verbose int + verification que la ligne de commande contient bien un prompt
+    #Bool verbose init + verification que la ligne de commande contient bien un prompt
     verbose = "--verbose" in sys.argv
     if len(sys.argv) < 2:
         print("Error, no prompt detected as param for the script")
@@ -22,18 +22,24 @@ def main():
     else:
         prompt = sys.argv[1]
 
+    if not prompt:
+        print("Error, prompt empty - write something")
+        sys.exit(1)
+
     #Creation de la liste des messages (la conversation avec l'agent IA)    
     messages = [
         types.Content(role="user", parts=[types.Part(text=prompt)]),
     ]
 
     #Boucle complète pour créer une conversation avec l'agent
-    for i in range(0, 20):
+    for _ in range(0, 20):
 
         try:
-            #Appel au model IA pour générer une réponse sur base du prompt 
-            #system_instruction permet de donner au système un prompt de base qui lui indique comment il peut travailler
-            #tools est une liste de toutes les méthodes que l'agent peut utiliser - déclarer dans call_function.py
+            """
+            Appel au model IA pour générer une réponse sur base du prompt 
+            - system_instruction permet de donner au système un prompt de base qui lui indique comment il peut travailler
+            - tools est une liste de toutes les méthodes que l'agent peut utiliser - déclarer dans call_function.py
+            """
             res = client.models.generate_content(
                 model="gemini-2.0-flash-001", 
                 contents=messages, 
@@ -49,6 +55,7 @@ def main():
                     messages.append(candidate.content)
 
             #Si le résultat du prompt n'a nécéssité aucun appel à une fonction, on retourne la réponse finale du modèle
+            #Permet également la sortie de la boucle lorsque tous les appels nécessaires au prompt sont terminés et affiche la réponse finale de l'agent
             if not res.function_calls:
                 print(res.text)
                 return
@@ -56,8 +63,13 @@ def main():
             """Si le résultat du prompt a effectué des appels à une ou plusieurs fonctions.
             Pour chaque fonction, on effectue son appel avec les paramètres -- function_call_part contient un name (le nom de la fct) et un args , chaque param de la fct
             Dans chaque fichier .py qui déclare la fonction, on a mis en place un schéma de déclaration qui définit ce qu'elle fait, et ses paramètres
-            C'est l'agent qui fait la correspondance entre le prompt et les args par lui-même
-            Ci-dessous, on vérifie que l'appel a bien retourné une réponse, puis on la retourne au User
+            C'est l'agent qui fait la correspondance entre le prompt et les args par lui-même, en restant toujours dans le working_directory définit en dur dans le système
+            Ci-dessous, on :
+            - Boucle sur chaque fonction appelée
+            - Appel la fonction en fournissant les properties de celle-ci -- name & args
+            - Si la fonction retourne une réponse : on l'ajoute à une liste de réponse
+            - à la fin de la boucle, on ajoute à la conversation avec l'agent, toutes les réponses reçues des fonctions appelées
+              ces réponses servent à la continuité du chat et à produire la réponse finale
             """
             call_function_res = []
             for function_call_part in res.function_calls:
